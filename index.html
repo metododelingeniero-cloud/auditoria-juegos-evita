@@ -2,6 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<!-- Seguridad: la página solo puede cargar su propio código, la fuente de Google y hablar con el script de Google.
+     Si alguna vez se cuela código ajeno, no puede mandar datos a otro lado ni cargar scripts de afuera. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://script.google.com https://script.googleusercontent.com; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -101,7 +105,6 @@
   .field.invalid input,.field.invalid textarea{border-color:var(--danger);box-shadow:0 0 0 3px rgba(198,40,40,.18)}
   .field.invalid label{color:var(--danger)}
   .field.invalid label::after{content:" · falta completar";font-weight:500;font-size:12px}
-  .field.invalid.formato label::after{content:" · formato inválido"}
   .upper{text-transform:uppercase}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
   .row .field{margin-bottom:0}
@@ -237,7 +240,7 @@
       <h2><span class="n">3</span>Móvil</h2>
       <div class="row">
         <div class="field"><label for="movil">Número de móvil</label><input type="text" id="movil" inputmode="numeric" maxlength="15"></div>
-        <div class="field"><label for="dominio">Dominio</label><input type="text" id="dominio" class="upper" maxlength="7" autocomplete="off" placeholder="AB123CD"></div>
+        <div class="field"><label for="dominio">Dominio</label><input type="text" id="dominio" class="upper" maxlength="12" autocomplete="off" placeholder="Ej.: AB123CD"></div>
       </div>
       <div class="field"><label for="empresa">Empresa</label><input type="text" id="empresa" maxlength="80"></div>
     </section>
@@ -310,6 +313,13 @@ const EQUIPOS = [
 /* URL del script de Google (script/Code.gs, ver README.md). Termina en /exec.
    Vacía: la app guarda solo en este celular, como antes. Con valor: cada auditoría se envía a la planilla al guardarla. */
 const FLOW_URL = "https://script.google.com/macros/s/AKfycbyZ3Jkbre1RgIMFhFlF0mWn7bSFJSSFn7XksZpCrolGsfdZH_PJ0Qe6sR5FBCktvOnW/exec";
+/* Clave de campo (opcional, ver README): viaja en el link que se comparte (…/#k=<clave>), nunca en este código, que es
+   público en GitHub. Lo que va después de # no llega a ningún servidor: solo lo lee la app. Se guarda en el celular la
+   primera vez que se abre el link completo. No se borra del link: en iPhone, la app agregada a la pantalla de inicio
+   tiene su propio almacenamiento y la toma del link con el que se agregó. */
+const CLAVE_KEY = "auditorias_juegos_evita_clave";
+let claveCampo = new URLSearchParams(location.hash.slice(1)).get("k") || "";
+try { if(claveCampo) localStorage.setItem(CLAVE_KEY, claveCampo); else claveCampo = localStorage.getItem(CLAVE_KEY) || ""; } catch {}
 const STORAGE_KEY = "auditorias_juegos_evita_v1";
 const PREFS_KEY   = "auditorias_juegos_evita_prefs";
 const $ = s => document.querySelector(s);
@@ -368,7 +378,7 @@ function fieldOf(el){ return el.closest(".field"); }
 function limpiar(){
   const prefs = load(PREFS_KEY, {});
   CAMPOS.forEach(c => { $("#"+c).value = ""; });
-  document.querySelectorAll(".invalid").forEach(x => x.classList.remove("invalid","formato"));
+  document.querySelectorAll(".invalid").forEach(x => x.classList.remove("invalid"));
   $("#fecha").value = hoy();
   $("#evento").value = prefs.evento || "";
   $("#empresa").value = prefs.empresa || "";
@@ -387,16 +397,13 @@ function actualizarContador(){
   c.textContent = `${n} / 300`; c.classList.toggle("limit", n >= 300);
 }
 $("#obsGeneral").addEventListener("input", actualizarContador);
-$("#dominio").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,""); });
-document.addEventListener("input", e => { const f = e.target.closest(".field"); if(f) f.classList.remove("invalid","formato"); });
+document.addEventListener("input", e => { const f = e.target.closest(".field"); if(f) f.classList.remove("invalid"); });
 
 function validar(){
   let primero = null;
-  const marcar = (el, extra) => { el.classList.add("invalid"); if(extra) el.classList.add(extra); primero ??= el; };
+  const marcar = el => { el.classList.add("invalid"); primero ??= el; };
 
-  CAMPOS.forEach(c => { const el = $("#"+c); if(!el.value.trim()) marcar(fieldOf(el)); });
-  const dom = $("#dominio").value;
-  if(dom && !/^([A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2})$/.test(dom)) marcar(fieldOf($("#dominio")), "formato");
+  CAMPOS.forEach(c => { const el = $("#"+c); if(!el.value.trim()) marcar(fieldOf(el)); });   // el dominio acepta cualquier formato
 
   EQUIPOS.forEach(e => {
     const ob = $("#ob-" + e.id);
@@ -420,6 +427,7 @@ function guardar(){
   const r = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), creado: new Date().toISOString() };
   if(FLOW_URL) r.enviado = false;
   CAMPOS.forEach(c => r[c] = $("#"+c).value.trim());
+  r.dominio = r.dominio.toUpperCase();   // se ve en mayúsculas al escribir (CSS) y se guarda igual
   r.equipos = {};
   EQUIPOS.forEach(e => r.equipos[e.id] = { estado: e.tipo === "sino" ? estado[e.id] : null, ob: $("#ob-" + e.id).value.trim() });
   r.obsGeneral = $("#obsGeneral").value.trim();
@@ -460,7 +468,7 @@ function renderLista(){
       <article class="rec">
         <div class="top">
           <b>Móvil ${esc(r.movil)} · ${esc(r.dominio)}</b>
-          <span class="when">${fechaAR(r.fecha)}</span>
+          <span class="when">${esc(fechaAR(r.fecha))}</span>
         </div>
         <div class="pills"><span class="pill ev">${esc(r.evento)}</span>${pills}${FLOW_URL ? (r.enviado ? `<span class="pill env">Enviada</span>` : `<span class="pill pend">Pendiente de envío</span>`) : ""}</div>
         ${FLOW_URL && !r.enviado && r.errorEnvio ? `<p class="err-envio">Todavía no se pudo enviar (${esc(r.errorEnvio)}). Se reintenta sola.</p>` : ""}
@@ -473,8 +481,8 @@ function renderLista(){
           ${r.obsGeneral ? `<dt>Obs. generales</dt><dd>${esc(r.obsGeneral)}</dd>` : ""}
         </dl>
         <div class="acciones">
-          <button class="link-btn" data-share="${r.id}" type="button">Compartir</button>
-          <button class="link-btn peligro" data-del="${r.id}" type="button">Eliminar</button>
+          <button class="link-btn" data-share="${esc(r.id)}" type="button">Compartir</button>
+          <button class="link-btn peligro" data-del="${esc(r.id)}" type="button">Eliminar</button>
         </div>
       </article>`;
   }).join("");
@@ -529,7 +537,7 @@ function pendientes(){ return FLOW_URL ? registros.filter(r => !r.enviado) : [];
 async function enviarUno(r){
   const c = new AbortController(), t = setTimeout(() => c.abort(), 30000);
   try {
-    const res = await (await fetch(FLOW_URL, { method:"POST", body: JSON.stringify({ accion:"auditoria", fila: filaPlanilla(r) }), signal: c.signal })).json();
+    const res = await (await fetch(FLOW_URL, { method:"POST", body: JSON.stringify({ accion:"auditoria", clave: claveCampo, fila: filaPlanilla(r) }), signal: c.signal })).json();
     return res.ok ? { estado:"ok" } : { estado:"rechazo", error: res.error || "respuesta no válida" };
   } catch(e){ console.warn("No se pudo enviar la auditoría", r.id, e); return { estado:"red" }; }
   finally { clearTimeout(t); }
