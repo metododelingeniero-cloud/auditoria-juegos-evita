@@ -204,20 +204,27 @@
   .bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--brand),var(--accent))}
   .bar.mala i{background:var(--danger)}
   .bar em{font-style:normal;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .tabla-titulo{margin:22px 0 8px;font-size:15px;font-weight:800}
-  .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);-webkit-overflow-scrolling:touch}
-  table{border-collapse:collapse;width:100%;min-width:1100px;font-size:13.5px}
-  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
-  th{background:var(--brand);color:#fff;font-weight:700;white-space:nowrap}
-  th:first-child{border-radius:14px 0 0 0}th:last-child{border-radius:0 14px 0 0}
+  /* Tabla compacta: una línea por auditoría, se ven unas 10 y el resto se desliza adentro (encabezado fijo) */
+  .tabla-cab{display:flex;justify-content:space-between;align-items:baseline;gap:6px 12px;flex-wrap:wrap;margin:22px 0 8px}
+  .tabla-titulo{margin:0;font-size:15px;font-weight:800}
+  .tablewrap{overflow:auto;max-height:400px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);-webkit-overflow-scrolling:touch}
+  table{border-collapse:separate;border-spacing:0;width:100%;min-width:960px;font-size:12.5px}
+  th,td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+  th{position:sticky;top:0;z-index:1;background:var(--brand);color:#fff;font-weight:700}
   tbody tr:nth-child(even){background:color-mix(in srgb,var(--brand) 3%,var(--card))}
   tbody tr:hover{background:color-mix(in srgb,var(--accent) 8%,var(--card))}
-  td.num{white-space:nowrap}
-  td small{display:block;color:var(--muted);font-size:12px;margin-top:3px;max-width:180px}
+  td .corta{display:block;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+  td.obs .corta{max-width:240px;cursor:pointer}
+  td.obs.abierta .corta{white-space:normal;max-width:320px}
+  td.obs .corta:empty::before{content:"—";color:var(--muted)}
+  td small{color:var(--muted);font-size:11.5px}
+  td .pill{font-size:11px;padding:1px 7px}
   tr.falla td:first-child{box-shadow:inset 4px 0 0 var(--danger)}
-  .pager{display:flex;justify-content:center;align-items:center;gap:14px;margin:4px 0 12px;font-size:13px;color:var(--muted)}
-  .pager button{width:38px;height:38px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--brand-txt);font-size:20px;cursor:pointer}
-  .pager button:disabled{opacity:.35;cursor:default}
+  td.acc{text-align:right;padding:4px 8px}
+  .ico-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--brand-txt);cursor:pointer;display:inline-grid;place-items:center;margin-left:4px;padding:0}
+  .ico-btn.peligro{color:var(--danger)}
+  .ico-btn svg{width:15px;height:15px;pointer-events:none}
+  .ico-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .tb-pie{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:16px}
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .bar.mala i{background:#ff8a80} }
   :root[data-theme="dark"] .bar.mala i{background:#ff8a80}
@@ -266,6 +273,7 @@
   <form id="form" novalidate>
     <h1>Auditoría diaria</h1>
     <p class="lead">Control de dotación y equipamiento del móvil antes de iniciar el evento.</p>
+    <div class="notice hidden" id="editBanner"><b id="editTxt"></b> Los cambios van directo a la planilla. <button class="link-btn" id="btnCancelarEdit" type="button">Cancelar</button></div>
 
     <section class="card">
       <h2><span class="n">1</span>Evento</h2>
@@ -307,7 +315,7 @@
 
     <button class="primary" id="btnGuardar" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      Guardar auditoría
+      <span id="btnGuardarTxt">Guardar auditoría</span>
     </button>
     <p class="envio-estado hidden" id="envioForm"></p>
     <p class="foot"><button class="link-btn" id="btnLimpiar" type="button">Limpiar formulario</button></p>
@@ -352,15 +360,17 @@
         <div class="box"><h3>Por empresa</h3><div class="barras" id="byEmpresa"></div></div>
         <div class="box"><h3>Por día</h3><div class="barras" id="byDia"></div></div>
       </div>
-      <h3 class="tabla-titulo">Detalle de auditorías</h3>
-      <div id="tbPagerTop"></div>
+      <div class="tabla-cab">
+        <h3 class="tabla-titulo">Detalle de auditorías <span id="tbCuenta" class="hint"></span></h3>
+        <button class="link-btn peligro" id="tbBorrarVisibles" type="button">Eliminar las que se ven</button>
+      </div>
       <div class="tablewrap">
         <table>
           <thead><tr id="tbHead"></tr></thead>
           <tbody id="tbBody"></tbody>
         </table>
       </div>
-      <div id="tbPagerBottom"></div>
+      <p class="hint">Tocá una observación para verla completa. ✎ modifica la auditoría y 🗑 la elimina (queda guardada en la hoja "Eliminadas" de la planilla).</p>
       <div class="tb-pie"><span id="tbAct"></span><button class="link-btn" id="tbActualizar" type="button">Actualizar ahora</button></div>
     </div>
   </div>
@@ -389,11 +399,11 @@
    "sino": Sí/No; si es No, la observación es obligatoria.
    "ob":   solo observación (obligatoria). */
 const EQUIPOS = [
-  { id:"desfibrilador",      nombre:"Desfibrilador",           tipo:"sino" },
-  { id:"electrocardiografo", nombre:"Electrocardiógrafo",      tipo:"sino" },
-  { id:"viaAerea",           nombre:"Bolso de vía aérea",      tipo:"sino" },
-  { id:"maletin",            nombre:"Maletín de medicamentos", tipo:"ob"   },
-  { id:"o2",                 nombre:"O2 (oxígeno)",            tipo:"sino" }
+  { id:"desfibrilador",      nombre:"Desfibrilador",           corto:"Desfib.",   tipo:"sino" },   // corto: encabezado en la tabla del Tablero
+  { id:"electrocardiografo", nombre:"Electrocardiógrafo",      corto:"ECG",       tipo:"sino" },
+  { id:"viaAerea",           nombre:"Bolso de vía aérea",      corto:"Vía aérea", tipo:"sino" },
+  { id:"maletin",            nombre:"Maletín de medicamentos", corto:"Maletín",   tipo:"ob"   },
+  { id:"o2",                 nombre:"O2 (oxígeno)",            corto:"O2",        tipo:"sino" }
 ];
 /* URL del script de Google (script/Code.gs, ver README.md). Termina en /exec.
    Vacía: la app guarda solo en este celular, como antes. Con valor: cada auditoría se envía a la planilla al guardarla. */
@@ -506,16 +516,23 @@ function validar(){
   return true;
 }
 
-function guardar(){
-  if(!validar()) return;
-  // el ID lleva una parte al azar: dos celulares pueden guardar en el mismo milisegundo y en la planilla no se pueden repetir
-  const r = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), creado: new Date().toISOString() };
-  if(FLOW_URL) r.enviado = false;
+/* Lo que hay en el formulario, como auditoría (sin ID ni fecha de registro). Lo usan el alta y la edición del Tablero. */
+function leerFormulario(){
+  const r = {};
   CAMPOS.forEach(c => r[c] = $("#"+c).value.trim());
   r.dominio = r.dominio.toUpperCase();   // se ve en mayúsculas al escribir (CSS) y se guarda igual
   r.equipos = {};
   EQUIPOS.forEach(e => r.equipos[e.id] = { estado: e.tipo === "sino" ? estado[e.id] : null, ob: $("#ob-" + e.id).value.trim() });
   r.obsGeneral = $("#obsGeneral").value.trim();
+  return r;
+}
+
+function guardar(){
+  if(!validar()) return;
+  if(editando){ guardarEdicion(); return; }   // modificando una auditoría del Tablero: va directo a la planilla
+  // el ID lleva una parte al azar: dos celulares pueden guardar en el mismo milisegundo y en la planilla no se pueden repetir
+  const r = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), creado: new Date().toISOString(), ...leerFormulario() };
+  if(FLOW_URL) r.enviado = false;
 
   registros.unshift(r);
   if(!save(STORAGE_KEY, registros)){ registros.shift(); toast("No se pudo guardar en este dispositivo", "err"); return; }
@@ -937,8 +954,7 @@ $("#btnCsv").addEventListener("click", () => descargarExcel(registros, `auditori
    script responde al instante sin leer la planilla. */
 const MODO_COORD = new URLSearchParams(location.search).get("modo") === "coordinador";
 const COORD_KEY = "auditorias_juegos_evita_coord";
-const POR_PAGINA = 10;
-let central = [], verCentral = "", cargandoCentral = false, paginaTabla = 0;
+let central = [], verCentral = "", cargandoCentral = false;
 let claveCoord = new URLSearchParams(location.hash.slice(1)).get("c") || "";
 try { if(claveCoord) localStorage.setItem(COORD_KEY, claveCoord); else claveCoord = localStorage.getItem(COORD_KEY) || ""; } catch {}
 
@@ -1019,34 +1035,101 @@ function renderTablero(){
   barras($("#byEmpresa"), agrupar(rows, r => r.empresa), "Sin datos");
   barras($("#byDia"), agrupar(rows, r => r.fecha).sort((a, b) => b[0].localeCompare(a[0])).map(([f, n]) => [fechaAR(f), n]), "Sin datos");
 
-  // Tabla: de a POR_PAGINA filas; los KPIs, las barras y el Excel usan todas las del período
-  const paginas = Math.max(1, Math.ceil(rows.length / POR_PAGINA));
-  paginaTabla = Math.min(Math.max(0, paginaTabla), paginas - 1);
-  const visibles = rows.slice(paginaTabla * POR_PAGINA, (paginaTabla + 1) * POR_PAGINA);
+  // Tabla compacta: una línea por auditoría; se ven unas 10 y el resto se desliza adentro del cuadro.
+  // Las observaciones (de cada equipo y la general) van juntas en una columna: se corta en una línea y se abre al tocarla.
   const celdaEq = (r, e) => {
     const q = r.equipos[e.id];
-    if(e.tipo !== "sino") return `<td>${esc(q.ob)}</td>`;
-    const pill = q.estado ? `<span class="pill ${q.estado === "SI" ? "si" : "no"}">${q.estado === "SI" ? "OK" : "NO"}</span>` : "—";
-    return `<td>${pill}${q.ob ? `<small>${esc(q.ob)}</small>` : ""}</td>`;
+    if(e.tipo !== "sino") return `<td><span class="corta" title="${esc(q.ob)}">${esc(q.ob)}</span></td>`;
+    return `<td>${q.estado ? `<span class="pill ${q.estado === "SI" ? "si" : "no"}">${q.estado === "SI" ? "OK" : "NO"}</span>` : "—"}</td>`;
   };
-  $("#tbHead").innerHTML = ["Fecha", "Evento", "Móvil", "Dominio", "Empresa", "Médico", "Enfermero", "Chofer", ...EQUIPOS.map(e => e.nombre), "Observaciones"]
+  const obsDe = r => [...EQUIPOS.filter(e => e.tipo === "sino" && r.equipos[e.id].ob).map(e => `${e.corto}: ${r.equipos[e.id].ob}`),
+                      r.obsGeneral].filter(Boolean).join(" · ");
+  const dotacion = r => [r.medico, r.enfermero, r.chofer].filter(Boolean).join(" · ");
+  $("#tbHead").innerHTML = ["Fecha", "Evento", "Móvil", "Empresa", "Dotación (médico · enfermero · chofer)", ...EQUIPOS.map(e => e.corto), "Observaciones", ""]
     .map(h => `<th>${esc(h)}</th>`).join("");
-  $("#tbBody").innerHTML = visibles.length ? visibles.map(r => `<tr class="${tieneFallas(r) ? "falla" : ""}">
-      <td class="num">${esc(fechaAR(r.fecha))}</td><td>${esc(r.evento)}</td><td class="num">${esc(r.movil)}</td><td class="num">${esc(r.dominio)}</td>
-      <td>${esc(r.empresa)}</td><td>${esc(r.medico)}</td><td>${esc(r.enfermero)}</td><td>${esc(r.chofer)}</td>
-      ${EQUIPOS.map(e => celdaEq(r, e)).join("")}<td>${esc(r.obsGeneral)}</td></tr>`).join("")
-    : `<tr><td colspan="${9 + EQUIPOS.length}" class="empty">No hay auditorías en ese rango.</td></tr>`;
-  const desde = rows.length ? paginaTabla * POR_PAGINA + 1 : 0, hasta = Math.min(rows.length, (paginaTabla + 1) * POR_PAGINA);
-  const pager = rows.length > POR_PAGINA ? `<div class="pager"><button type="button" data-d="-1" aria-label="Anteriores" ${paginaTabla ? "" : "disabled"}>‹</button><span>${desde}–${hasta} de ${rows.length}</span><button type="button" data-d="1" aria-label="Siguientes" ${paginaTabla < paginas - 1 ? "" : "disabled"}>›</button></div>` : "";
-  $("#tbPagerTop").innerHTML = pager; $("#tbPagerBottom").innerHTML = pager;
+  $("#tbBody").innerHTML = rows.length ? rows.map(r => `<tr class="${tieneFallas(r) ? "falla" : ""}">
+      <td>${esc(fechaAR(r.fecha))}</td><td><span class="corta" title="${esc(r.evento)}">${esc(r.evento)}</span></td>
+      <td>${esc(r.movil)} <small>${esc(r.dominio)}</small></td><td><span class="corta" title="${esc(r.empresa)}">${esc(r.empresa)}</span></td>
+      <td><span class="corta" title="${esc(dotacion(r))}">${esc(dotacion(r))}</span></td>
+      ${EQUIPOS.map(e => celdaEq(r, e)).join("")}
+      <td class="obs"><span class="corta" title="${esc(obsDe(r))}">${esc(obsDe(r))}</span></td>
+      <td class="acc"><button class="ico-btn" type="button" data-edit="${esc(r.id)}" aria-label="Modificar" title="Modificar">${ICONO_EDITAR}</button><button class="ico-btn peligro" type="button" data-borrar="${esc(r.id)}" aria-label="Eliminar" title="Eliminar">${ICONO_BORRAR}</button></td></tr>`).join("")
+    : `<tr><td colspan="${7 + EQUIPOS.length}" class="empty">No hay auditorías en ese rango.</td></tr>`;
+  $("#tbCuenta").textContent = rows.length ? `(${rows.length})` : "";
+  $("#tbBorrarVisibles").classList.toggle("hidden", !rows.length);
+  $("#tbBorrarVisibles").textContent = rows.length === 1 ? "Eliminar la que se ve" : `Eliminar las ${rows.length} que se ven`;
+}
+const ICONO_EDITAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+const ICONO_BORRAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
+
+/* ----- Modificar (U): la auditoría se carga en el formulario; al guardar se actualiza su fila en la planilla ----- */
+let editando = null;
+function editarAuditoria(r){
+  if(!r) return;
+  editando = r;
+  limpiar();
+  CAMPOS.forEach(c => { $("#" + c).value = r[c] || ""; });
+  EQUIPOS.forEach(e => {
+    $("#ob-" + e.id).value = r.equipos[e.id].ob || "";
+    if(e.tipo === "sino" && r.equipos[e.id].estado) setEstado(e.id, r.equipos[e.id].estado);
+  });
+  $("#obsGeneral").value = r.obsGeneral || ""; actualizarContador();
+  $("#editTxt").textContent = `Modificando la auditoría del móvil ${r.movil} (${fechaAR(r.fecha)}).`;
+  $("#editBanner").classList.remove("hidden");
+  $("#btnGuardarTxt").textContent = "Guardar cambios";
+  document.querySelector('.tabs button[data-view="form"]').click();
+}
+function salirEdicion(){
+  editando = null; limpiar();
+  $("#editBanner").classList.add("hidden");
+  $("#btnGuardarTxt").textContent = "Guardar auditoría";
+}
+async function guardarEdicion(){
+  const r = { ...leerFormulario(), id: editando.id, creado: editando.creado };
+  const btn = $("#btnGuardar"); btn.disabled = true;
+  try {
+    const res = await (await fetch(FLOW_URL, { method:"POST", body: JSON.stringify({ accion:"actualizar", claveCoord, fila: filaPlanilla(r) }) })).json();
+    if(!res.ok){ toast("No se pudo guardar: " + (res.error || "error"), "err"); return; }
+    toast(`Auditoría del móvil ${r.movil} modificada`, "ok");
+    salirEdicion(); verCentral = "";
+    document.querySelector('.tabs button[data-view="board"]').click();
+  } catch { toast("Sin conexión: los cambios no se guardaron. Probá de nuevo.", "err"); }
+  finally { btn.disabled = false; }
+}
+$("#btnCancelarEdit").addEventListener("click", () => { salirEdicion(); document.querySelector('.tabs button[data-view="board"]').click(); });
+
+/* ----- Eliminar (D): pasan a la hoja "Eliminadas" de la planilla (se pueden recuperar a mano desde ahí) ----- */
+async function eliminarCentral(ids, pregunta){
+  if(!ids.length || !confirm(pregunta)) return;
+  syncTablero("Eliminando…");
+  let n = 0;
+  try {
+    for(let i = 0; i < ids.length; i += 300){                       // de a tandas, por si son muchas
+      const tanda = ids.slice(i, i + 300);
+      const res = await (await fetch(FLOW_URL, { method:"POST", body: JSON.stringify({ accion:"eliminar", claveCoord, ids: tanda }) })).json();
+      if(!res.ok){ toast("No se pudo eliminar: " + (res.error || "error"), "err"); break; }
+      n += res.eliminadas || 0;
+      central = central.filter(r => !tanda.includes(r.id));
+    }
+    if(n) toast(n > 1 ? `${n} auditorías eliminadas` : "Auditoría eliminada", "ok");
+  } catch { toast(n ? `Se eliminaron ${n}; las demás no, por falta de conexión` : "Sin conexión: no se eliminó nada", "err"); }
+  finally { syncTablero(""); renderTablero(); verCentral = ""; cargarCentral(); }
 }
 
 $("#tbActualizar").addEventListener("click", () => cargarCentral());
-["#tbDesde", "#tbHasta"].forEach(s => $(s).addEventListener("change", () => { paginaTabla = 0; renderTablero(); }));
+["#tbDesde", "#tbHasta"].forEach(s => $(s).addEventListener("change", renderTablero));
 $("#board").addEventListener("click", e => {
-  const b = e.target.closest(".pager button"); if(!b) return;
-  paginaTabla += +b.dataset.d; renderTablero();
-  $("#tbPagerTop").scrollIntoView({ behavior:"smooth", block:"start" });
+  const ed = e.target.closest("[data-edit]"), bo = e.target.closest("[data-borrar]"), obs = e.target.closest("td.obs");
+  if(ed) editarAuditoria(central.find(r => r.id === ed.dataset.edit));
+  else if(bo){
+    const r = central.find(x => x.id === bo.dataset.borrar);
+    if(r) eliminarCentral([r.id], `¿Eliminar la auditoría del móvil ${r.movil} del ${fechaAR(r.fecha)}? Pasa a la hoja "Eliminadas" de la planilla.`);
+  }
+  else if(obs) obs.classList.toggle("abierta");
+});
+$("#tbBorrarVisibles").addEventListener("click", () => {
+  const rows = filtradasCentral(), conFiltro = $("#tbDesde").value || $("#tbHasta").value;
+  eliminarCentral(rows.map(r => r.id), `¿Eliminar ${rows.length === 1 ? "la auditoría que se ve" : `las ${rows.length} auditorías que se ven`}${conFiltro ? " (las del período elegido)" : " (todas las de la planilla)"}? Pasan a la hoja "Eliminadas" de la planilla.`);
 });
 $("#tbExcel").addEventListener("click", () => {
   const rows = filtradasCentral(), f = rows.map(r => r.fecha).sort();
