@@ -332,16 +332,7 @@
     <p class="lead">Todas las auditorías que llegaron a la planilla, de todos los celulares. Se actualiza solo cada minuto.</p>
     <div class="sync" id="tbSync" role="status"><span class="spin"></span><span></span></div>
 
-    <section class="card hidden" id="tbIngreso">
-      <h2><span class="n">🔒</span>Acceso de coordinación</h2>
-      <div class="notice hidden" id="tbIngresoMsg"></div>
-      <div class="field">
-        <label for="tbClave">Clave de coordinación</label>
-        <input type="password" id="tbClave" autocomplete="current-password">
-      </div>
-      <button class="primary" id="tbEntrar" type="button">Ver tablero</button>
-      <p class="hint">La clave queda guardada en este dispositivo.</p>
-    </section>
+    <div class="notice hidden" id="tbAviso"></div>
 
     <div id="tbDatos" class="hidden">
       <div class="filters">
@@ -370,7 +361,7 @@
         </table>
       </div>
       <div id="tbPagerBottom"></div>
-      <div class="tb-pie"><span id="tbAct"></span><button class="link-btn" id="tbSalir" type="button">Salir del tablero</button></div>
+      <div class="tb-pie"><span id="tbAct"></span><button class="link-btn" id="tbActualizar" type="button">Actualizar ahora</button></div>
     </div>
   </div>
 </main>
@@ -939,16 +930,19 @@ function descargarExcel(lista, nombre){
 $("#btnCsv").addEventListener("click", () => descargarExcel(registros, `auditorias_juegos_evita_${hoy()}`));
 
 /* ---------- Tablero (link de coordinación: …/?modo=coordinador) ----------
-   Lee de la planilla, a través del script, las auditorías de todos los celulares. Pide la clave de coordinación
-   (propiedad CLAVE_COORDINADOR del script) una vez y la guarda en el dispositivo. El link de campo no muestra esta pestaña.
-   Cada minuto, mientras está a la vista, pregunta si hubo cambios: si no, el script responde al instante sin leer la planilla. */
+   Lee de la planilla, a través del script, las auditorías de todos los celulares. Quien tiene el link entra directo, sin
+   pantalla de clave. Si en el script está la propiedad CLAVE_COORDINADOR, el link tiene que traerla escondida
+   (…?modo=coordinador#c=<clave>), igual que la clave de campo: así no alcanza con leer el código público de GitHub.
+   El link de campo no muestra esta pestaña. Cada minuto, mientras está a la vista, pregunta si hubo cambios: si no, el
+   script responde al instante sin leer la planilla. */
 const MODO_COORD = new URLSearchParams(location.search).get("modo") === "coordinador";
 const COORD_KEY = "auditorias_juegos_evita_coord";
 const POR_PAGINA = 10;
 let central = [], verCentral = "", cargandoCentral = false, paginaTabla = 0;
+let claveCoord = new URLSearchParams(location.hash.slice(1)).get("c") || "";
+try { if(claveCoord) localStorage.setItem(COORD_KEY, claveCoord); else claveCoord = localStorage.getItem(COORD_KEY) || ""; } catch {}
 
 function tieneFallas(r){ return EQUIPOS.some(e => e.tipo === "sino" && (r.equipos[e.id] || {}).estado === "NO"); }
-function claveCoord(){ try { return localStorage.getItem(COORD_KEY) || ""; } catch { return ""; } }
 
 /* Una fila de la planilla (encabezado → valor, como la devuelve el script) al formato de las auditorías del celular,
    así el tablero y el Excel usan las mismas funciones para las dos. */
@@ -968,26 +962,26 @@ function desdePlanilla(f){
 }
 
 function syncTablero(txt){ $("#tbSync").classList.toggle("on", !!txt); $("#tbSync span:last-child").textContent = txt || ""; }
-function mostrarIngreso(msg){
-  $("#tbDatos").classList.add("hidden"); $("#tbIngreso").classList.remove("hidden");
-  $("#tbIngresoMsg").classList.toggle("hidden", !msg); $("#tbIngresoMsg").textContent = msg || "";
+/* Aviso en lugar del tablero (sin conexión configurada, o un link sin acceso) */
+function avisoTablero(msg){
+  $("#tbDatos").classList.toggle("hidden", !!msg);
+  $("#tbAviso").classList.toggle("hidden", !msg); $("#tbAviso").textContent = msg || "";
 }
 
 async function cargarCentral(){
   if(cargandoCentral) return;
-  if(!FLOW_URL){ mostrarIngreso("Falta conectar la app con la planilla (FLOW_URL)."); return; }
-  const clave = claveCoord(); if(!clave){ mostrarIngreso(); return; }
+  if(!FLOW_URL){ avisoTablero("Falta conectar la app con la planilla (FLOW_URL)."); return; }
   cargandoCentral = true; syncTablero(central.length ? "Actualizando…" : "Cargando…");
   const c = new AbortController(), t = setTimeout(() => c.abort(), 60000);
   try {
-    const res = await (await fetch(FLOW_URL, { method:"POST", body: JSON.stringify({ accion:"leer", claveCoord: clave, ver: verCentral }), signal: c.signal })).json();
+    const res = await (await fetch(FLOW_URL, { method:"POST", body: JSON.stringify({ accion:"leer", claveCoord, ver: verCentral }), signal: c.signal })).json();
     if(!res.ok){
-      if(/clave|intentos|lectura/i.test(res.error || "")){ try { localStorage.removeItem(COORD_KEY); } catch {} central = []; verCentral = ""; mostrarIngreso(res.error); }
+      if(res.sinAcceso){ central = []; verCentral = ""; avisoTablero(res.error); }
       else toast("No se pudo leer la planilla: " + (res.error || "error"), "err");
       return;
     }
     if(!res.sinCambios){ central = (res.auditorias || []).map(desdePlanilla); verCentral = res.ver || ""; }
-    $("#tbIngreso").classList.add("hidden"); $("#tbDatos").classList.remove("hidden");
+    avisoTablero("");
     $("#tbAct").textContent = "Actualizado a las " + new Date().toLocaleTimeString("es-AR", { hour:"2-digit", minute:"2-digit", hour12:false });
     renderTablero();
   } catch(e){
@@ -1047,16 +1041,7 @@ function renderTablero(){
   $("#tbPagerTop").innerHTML = pager; $("#tbPagerBottom").innerHTML = pager;
 }
 
-$("#tbEntrar").addEventListener("click", () => {
-  const c = $("#tbClave").value.trim(); if(!c){ $("#tbClave").focus(); return; }
-  try { localStorage.setItem(COORD_KEY, c); } catch {}
-  $("#tbClave").value = ""; verCentral = ""; cargarCentral();
-});
-$("#tbClave").addEventListener("keydown", e => { if(e.key === "Enter") $("#tbEntrar").click(); });
-$("#tbSalir").addEventListener("click", () => {
-  try { localStorage.removeItem(COORD_KEY); } catch {}
-  central = []; verCentral = ""; mostrarIngreso();
-});
+$("#tbActualizar").addEventListener("click", () => cargarCentral());
 ["#tbDesde", "#tbHasta"].forEach(s => $(s).addEventListener("change", () => { paginaTabla = 0; renderTablero(); }));
 $("#board").addEventListener("click", e => {
   const b = e.target.closest(".pager button"); if(!b) return;
@@ -1108,7 +1093,7 @@ if(MODO_COORD){
   $(".tag").textContent = "COORDINACIÓN";
   document.title = "Tablero · Auditoría Juegos Evita";
   tab.click();
-  const visible = () => !document.hidden && !$("#board").classList.contains("hidden") && !!claveCoord();
+  const visible = () => !document.hidden && !$("#board").classList.contains("hidden");
   setInterval(() => { if(visible()) cargarCentral(); }, 60000);
   document.addEventListener("visibilitychange", () => { if(visible()) cargarCentral(); });
 }
