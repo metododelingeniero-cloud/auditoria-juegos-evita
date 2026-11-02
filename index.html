@@ -177,6 +177,51 @@
   .notice{border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card));border-radius:0 12px 12px 0;padding:10px 14px;font-size:14px;margin-bottom:14px}
   .hidden{display:none !important}
 
+  /* ===== Tablero (mismo estilo que el de Registro de atenciones) ===== */
+  .tabs.tres button{padding:9px 6px;font-size:14.5px}
+  main.ancho{max-width:1100px}
+  .sync{display:none;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:-8px 0 12px}
+  .sync.on{display:inline-flex}
+  .spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:girar .8s linear infinite;flex:none}
+  @keyframes girar{to{transform:rotate(360deg)}}
+  .filters{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:12px}
+  @media (max-width:520px){.filters{grid-template-columns:1fr 1fr}.filters .primary{grid-column:1/-1}}
+  .filters label{font-size:12.5px;font-weight:700;display:block;margin-bottom:4px}
+  .filters input{width:100%;background:var(--field);border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;min-height:42px}
+  .filters .primary{min-height:42px;padding:9px 16px;font-size:15px;border-radius:10px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  @media (max-width:520px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow)}
+  .kpi b{display:block;font-size:26px;line-height:1.1;color:var(--brand-txt)}
+  .kpi span{font-size:12.5px;color:var(--muted)}
+  .kpi.acc b{color:var(--accent)}
+  .mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  @media (max-width:520px){.mini{grid-template-columns:1fr}}
+  .mini .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);min-width:0}
+  .mini h3{margin:0 0 8px;font-size:14px}
+  .barras{max-height:196px;overflow-y:auto;padding-right:4px}
+  .bar{display:grid;grid-template-columns:minmax(70px,40%) 1fr auto;gap:8px;align-items:center;font-size:13px;margin:4px 0}
+  .bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--brand),var(--accent))}
+  .bar.mala i{background:var(--danger)}
+  .bar em{font-style:normal;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabla-titulo{margin:22px 0 8px;font-size:15px;font-weight:800}
+  .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;width:100%;min-width:1100px;font-size:13.5px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--brand);color:#fff;font-weight:700;white-space:nowrap}
+  th:first-child{border-radius:14px 0 0 0}th:last-child{border-radius:0 14px 0 0}
+  tbody tr:nth-child(even){background:color-mix(in srgb,var(--brand) 3%,var(--card))}
+  tbody tr:hover{background:color-mix(in srgb,var(--accent) 8%,var(--card))}
+  td.num{white-space:nowrap}
+  td small{display:block;color:var(--muted);font-size:12px;margin-top:3px;max-width:180px}
+  tr.falla td:first-child{box-shadow:inset 4px 0 0 var(--danger)}
+  .pager{display:flex;justify-content:center;align-items:center;gap:14px;margin:4px 0 12px;font-size:13px;color:var(--muted)}
+  .pager button{width:38px;height:38px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--brand-txt);font-size:20px;cursor:pointer}
+  .pager button:disabled{opacity:.35;cursor:default}
+  .tb-pie{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:16px}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .bar.mala i{background:#ff8a80} }
+  :root[data-theme="dark"] .bar.mala i{background:#ff8a80}
+
   /* ===== Toast ===== */
   .toast{
     position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
@@ -212,6 +257,7 @@
   <div class="tabs" role="tablist">
     <button type="button" role="tab" aria-selected="true" data-view="form">Nueva auditoría</button>
     <button type="button" role="tab" aria-selected="false" data-view="list">Registros<span class="cnt" id="countTab">0</span></button>
+    <button type="button" role="tab" aria-selected="false" data-view="board" class="hidden">Tablero</button>
   </div>
 </header>
 
@@ -278,6 +324,54 @@
     <input type="search" class="search" id="buscar" placeholder="Buscar por móvil, dominio, evento o persona…">
     <div id="items"></div>
     <p class="foot"><button class="link-btn peligro" id="btnBorrarTodo" type="button">Borrar todos los registros</button></p>
+  </div>
+
+  <!-- ===== TABLERO (solo con el link de coordinación: …/?modo=coordinador) ===== -->
+  <div id="board" class="hidden">
+    <h1>Tablero</h1>
+    <p class="lead">Todas las auditorías que llegaron a la planilla, de todos los celulares. Se actualiza solo cada minuto.</p>
+    <div class="sync" id="tbSync" role="status"><span class="spin"></span><span></span></div>
+
+    <section class="card hidden" id="tbIngreso">
+      <h2><span class="n">🔒</span>Acceso de coordinación</h2>
+      <div class="notice hidden" id="tbIngresoMsg"></div>
+      <div class="field">
+        <label for="tbClave">Clave de coordinación</label>
+        <input type="password" id="tbClave" autocomplete="current-password">
+      </div>
+      <button class="primary" id="tbEntrar" type="button">Ver tablero</button>
+      <p class="hint">La clave queda guardada en este dispositivo.</p>
+    </section>
+
+    <div id="tbDatos" class="hidden">
+      <div class="filters">
+        <div><label for="tbDesde">Desde</label><input id="tbDesde" type="date"></div>
+        <div><label for="tbHasta">Hasta</label><input id="tbHasta" type="date"></div>
+        <button class="primary" id="tbExcel" type="button">Descargar Excel</button>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><b id="kTotal">0</b><span>Auditorías</span></div>
+        <div class="kpi acc"><b id="kFallas">0</b><span>Con fallas</span></div>
+        <div class="kpi"><b id="kOk">—</b><span>Sin fallas</span></div>
+        <div class="kpi"><b id="kMoviles">0</b><span>Móviles auditados</span></div>
+      </div>
+      <div class="mini">
+        <div class="box"><h3>Fallas por equipo</h3><div class="barras" id="byEquipo"></div></div>
+        <div class="box"><h3>Por evento</h3><div class="barras" id="byEvento"></div></div>
+        <div class="box"><h3>Por empresa</h3><div class="barras" id="byEmpresa"></div></div>
+        <div class="box"><h3>Por día</h3><div class="barras" id="byDia"></div></div>
+      </div>
+      <h3 class="tabla-titulo">Detalle de auditorías</h3>
+      <div id="tbPagerTop"></div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr id="tbHead"></tr></thead>
+          <tbody id="tbBody"></tbody>
+        </table>
+      </div>
+      <div id="tbPagerBottom"></div>
+      <div class="tb-pie"><span id="tbAct"></span><button class="link-btn" id="tbSalir" type="button">Salir del tablero</button></div>
+    </div>
   </div>
 </main>
 
@@ -443,7 +537,7 @@ $("#btnGuardar").addEventListener("click", guardar);
 $("#btnLimpiar").addEventListener("click", () => { if(confirm("¿Limpiar el formulario?")) limpiar(); });
 
 /* ---------- Registros ---------- */
-function fechaAR(iso){ const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`; }
+function fechaAR(iso){ const [y,m,d] = String(iso || "").split("-"); return d ? `${d}/${m}/${y}` : String(iso || ""); }
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 const ICONO_VACIO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>`;
 
@@ -739,8 +833,10 @@ function serieExcel(y, m, d, hh = 0, mi = 0){
   return (Date.UTC(y, m-1, d, hh, mi) - Date.UTC(1899, 11, 30)) / 86400000;
 }
 
-$("#btnCsv").addEventListener("click", () => {
-  if(!registros.length){ toast("No hay registros para descargar", "err"); return; }
+/* Arma y descarga el Excel de una lista de auditorías (más nueva primero): las del celular (Registros) o las de la
+   planilla (Tablero). nombre: cómo se llama el archivo, sin .xlsx */
+function descargarExcel(lista, nombre){
+  if(!lista.length){ toast("No hay auditorías para descargar", "err"); return; }
   const { col, C } = XLSX_MINI;
 
   /* ----- Columnas, agrupadas por bloque ----- */
@@ -758,8 +854,8 @@ $("#btnCsv").addEventListener("click", () => {
   const vacias = (n, s) => Array.from({ length:n }, () => ({ s }));
 
   /* ----- Resumen ----- */
-  const conFallas = registros.filter(r => EQUIPOS.some(e => r.equipos[e.id].estado === "NO")).length;
-  const fechas = registros.map(r => r.fecha).sort();
+  const conFallas = lista.filter(tieneFallas).length;
+  const fechas = lista.map(r => r.fecha).sort();
   const periodo = fechas[0] === fechas.at(-1) ? fechaAR(fechas[0]) : `${fechaAR(fechas[0])} al ${fechaAR(fechas.at(-1))}`;
   const ahora = new Date();
   const ahoraTxt = ahora.toLocaleDateString("es-AR") + " " + ahora.toLocaleTimeString("es-AR", { hour:"2-digit", minute:"2-digit", hour12:false });
@@ -774,8 +870,8 @@ $("#btnCsv").addEventListener("click", () => {
   // 3 · Resumen
   filas.push({ ht:24, celdas:[{ s:"resumen", rich:[
     { t:"Período: " }, { t:periodo, b:1, c:C.ink, sz:11 },
-    { t:"      Auditorías: " }, { t:String(registros.length), b:1, c:C.ink, sz:11 },
-    { t:"      Sin fallas: " }, { t:String(registros.length - conFallas), b:1, c:C.ok, sz:11 },
+    { t:"      Auditorías: " }, { t:String(lista.length), b:1, c:C.ink, sz:11 },
+    { t:"      Sin fallas: " }, { t:String(lista.length - conFallas), b:1, c:C.ok, sz:11 },
     { t:"      Con fallas: " }, { t:String(conFallas), b:1, c: conFallas ? C.bad : C.ink, sz:11 }
   ]}, ...vacias(N-1, "resumen")] });
   merges.push(`A3:${ULT}3`);
@@ -804,7 +900,7 @@ $("#btnCsv").addEventListener("click", () => {
     });
     return Math.max(20, Math.round(lineas * 13.5 + 6));
   };
-  [...registros].reverse().forEach((r, k) => {
+  [...lista].reverse().forEach((r, k) => {
     const z = k % 2 ? "Z" : "";
     const [y,m,d] = r.fecha.split("-").map(Number);
     const cr = new Date(r.creado);
@@ -835,10 +931,141 @@ $("#btnCsv").addEventListener("click", () => {
   });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `auditorias_juegos_evita_${hoy()}.xlsx`;
+  a.download = `${nombre}.xlsx`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast("Excel descargado", "ok");
+}
+$("#btnCsv").addEventListener("click", () => descargarExcel(registros, `auditorias_juegos_evita_${hoy()}`));
+
+/* ---------- Tablero (link de coordinación: …/?modo=coordinador) ----------
+   Lee de la planilla, a través del script, las auditorías de todos los celulares. Pide la clave de coordinación
+   (propiedad CLAVE_COORDINADOR del script) una vez y la guarda en el dispositivo. El link de campo no muestra esta pestaña.
+   Cada minuto, mientras está a la vista, pregunta si hubo cambios: si no, el script responde al instante sin leer la planilla. */
+const MODO_COORD = new URLSearchParams(location.search).get("modo") === "coordinador";
+const COORD_KEY = "auditorias_juegos_evita_coord";
+const POR_PAGINA = 10;
+let central = [], verCentral = "", cargandoCentral = false, paginaTabla = 0;
+
+function tieneFallas(r){ return EQUIPOS.some(e => e.tipo === "sino" && (r.equipos[e.id] || {}).estado === "NO"); }
+function claveCoord(){ try { return localStorage.getItem(COORD_KEY) || ""; } catch { return ""; } }
+
+/* Una fila de la planilla (encabezado → valor, como la devuelve el script) al formato de las auditorías del celular,
+   así el tablero y el Excel usan las mismas funciones para las dos. */
+function desdePlanilla(f){
+  const s = v => String(v ?? "").trim();
+  const r = { id: s(f["ID"]), fecha: s(f["Fecha"]), evento: s(f["Evento"]), medico: s(f["Médico"]), enfermero: s(f["Enfermero"]),
+              chofer: s(f["Chofer"]), movil: s(f["N° Móvil"]), dominio: s(f["Dominio"]), empresa: s(f["Empresa"]),
+              obsGeneral: s(f["Observaciones generales"]), equipos: {} };
+  const reg = Number(f["Registrado el"]) || Number(f["Recibido el"]) || 0;
+  r.creado = new Date(reg || Date.now()).toISOString();
+  EQUIPOS.forEach(e => {
+    r.equipos[e.id] = e.tipo === "sino"
+      ? { estado: s(f[e.nombre]) === "SI" ? "SI" : s(f[e.nombre]) === "NO" ? "NO" : null, ob: s(f["Obs. " + e.nombre.toLowerCase()]) }
+      : { estado: null, ob: s(f[e.nombre]) };
+  });
+  return r;
+}
+
+function syncTablero(txt){ $("#tbSync").classList.toggle("on", !!txt); $("#tbSync span:last-child").textContent = txt || ""; }
+function mostrarIngreso(msg){
+  $("#tbDatos").classList.add("hidden"); $("#tbIngreso").classList.remove("hidden");
+  $("#tbIngresoMsg").classList.toggle("hidden", !msg); $("#tbIngresoMsg").textContent = msg || "";
+}
+
+async function cargarCentral(){
+  if(cargandoCentral) return;
+  if(!FLOW_URL){ mostrarIngreso("Falta conectar la app con la planilla (FLOW_URL)."); return; }
+  const clave = claveCoord(); if(!clave){ mostrarIngreso(); return; }
+  cargandoCentral = true; syncTablero(central.length ? "Actualizando…" : "Cargando…");
+  const c = new AbortController(), t = setTimeout(() => c.abort(), 60000);
+  try {
+    const res = await (await fetch(FLOW_URL, { method:"POST", body: JSON.stringify({ accion:"leer", claveCoord: clave, ver: verCentral }), signal: c.signal })).json();
+    if(!res.ok){
+      if(/clave|intentos|lectura/i.test(res.error || "")){ try { localStorage.removeItem(COORD_KEY); } catch {} central = []; verCentral = ""; mostrarIngreso(res.error); }
+      else toast("No se pudo leer la planilla: " + (res.error || "error"), "err");
+      return;
+    }
+    if(!res.sinCambios){ central = (res.auditorias || []).map(desdePlanilla); verCentral = res.ver || ""; }
+    $("#tbIngreso").classList.add("hidden"); $("#tbDatos").classList.remove("hidden");
+    $("#tbAct").textContent = "Actualizado a las " + new Date().toLocaleTimeString("es-AR", { hour:"2-digit", minute:"2-digit", hour12:false });
+    renderTablero();
+  } catch(e){
+    toast(e.name === "AbortError" ? "La planilla tarda en responder. Se vuelve a intentar en un minuto." : "Sin conexión con la planilla", "err");
+  } finally { clearTimeout(t); cargandoCentral = false; syncTablero(""); }
+}
+
+function filtradasCentral(){
+  const a = $("#tbDesde").value, b = $("#tbHasta").value;
+  return central.filter(r => (!a || r.fecha >= a) && (!b || r.fecha <= b));
+}
+/* Cantidades agrupadas, de mayor a menor. "River Plate" y "river plate " cuentan como uno; se muestra el primer nombre visto. */
+function agrupar(rows, valor){
+  const m = new Map();
+  rows.forEach(r => { const v = String(valor(r) ?? "").trim() || "—", k = v.toLowerCase(); const x = m.get(k) || { v, n:0 }; x.n++; m.set(k, x); });
+  return [...m.values()].sort((a, b) => b.n - a.n).map(x => [x.v, x.n]);
+}
+function barras(el, pares, vacio, clase = ""){
+  const max = Math.max(1, ...pares.map(p => p[1]));
+  el.innerHTML = pares.length ? pares.map(([k, n]) =>
+    `<div class="bar ${clase}"><em title="${esc(k)}">${esc(k)}</em><i style="width:${Math.max(4, n / max * 100)}%"></i><span>${n}</span></div>`).join("")
+    : `<span class="hint">${vacio}</span>`;
+}
+function renderTablero(){
+  const rows = filtradasCentral(), conF = rows.filter(tieneFallas).length;
+  $("#kTotal").textContent = rows.length;
+  $("#kFallas").textContent = conF;
+  $("#kOk").textContent = rows.length ? Math.round((rows.length - conF) / rows.length * 100) + "%" : "—";
+  $("#kMoviles").textContent = new Set(rows.map(r => r.movil.toLowerCase()).filter(Boolean)).size;
+
+  const sino = EQUIPOS.filter(e => e.tipo === "sino");
+  barras($("#byEquipo"), sino.map(e => [e.nombre, rows.filter(r => r.equipos[e.id].estado === "NO").length]).filter(p => p[1]).sort((a, b) => b[1] - a[1]),
+         rows.length ? "Sin fallas en el período ✔" : "Sin datos", "mala");
+  barras($("#byEvento"), agrupar(rows, r => r.evento), "Sin datos");
+  barras($("#byEmpresa"), agrupar(rows, r => r.empresa), "Sin datos");
+  barras($("#byDia"), agrupar(rows, r => r.fecha).sort((a, b) => b[0].localeCompare(a[0])).map(([f, n]) => [fechaAR(f), n]), "Sin datos");
+
+  // Tabla: de a POR_PAGINA filas; los KPIs, las barras y el Excel usan todas las del período
+  const paginas = Math.max(1, Math.ceil(rows.length / POR_PAGINA));
+  paginaTabla = Math.min(Math.max(0, paginaTabla), paginas - 1);
+  const visibles = rows.slice(paginaTabla * POR_PAGINA, (paginaTabla + 1) * POR_PAGINA);
+  const celdaEq = (r, e) => {
+    const q = r.equipos[e.id];
+    if(e.tipo !== "sino") return `<td>${esc(q.ob)}</td>`;
+    const pill = q.estado ? `<span class="pill ${q.estado === "SI" ? "si" : "no"}">${q.estado === "SI" ? "OK" : "NO"}</span>` : "—";
+    return `<td>${pill}${q.ob ? `<small>${esc(q.ob)}</small>` : ""}</td>`;
+  };
+  $("#tbHead").innerHTML = ["Fecha", "Evento", "Móvil", "Dominio", "Empresa", "Médico", "Enfermero", "Chofer", ...EQUIPOS.map(e => e.nombre), "Observaciones"]
+    .map(h => `<th>${esc(h)}</th>`).join("");
+  $("#tbBody").innerHTML = visibles.length ? visibles.map(r => `<tr class="${tieneFallas(r) ? "falla" : ""}">
+      <td class="num">${esc(fechaAR(r.fecha))}</td><td>${esc(r.evento)}</td><td class="num">${esc(r.movil)}</td><td class="num">${esc(r.dominio)}</td>
+      <td>${esc(r.empresa)}</td><td>${esc(r.medico)}</td><td>${esc(r.enfermero)}</td><td>${esc(r.chofer)}</td>
+      ${EQUIPOS.map(e => celdaEq(r, e)).join("")}<td>${esc(r.obsGeneral)}</td></tr>`).join("")
+    : `<tr><td colspan="${9 + EQUIPOS.length}" class="empty">No hay auditorías en ese rango.</td></tr>`;
+  const desde = rows.length ? paginaTabla * POR_PAGINA + 1 : 0, hasta = Math.min(rows.length, (paginaTabla + 1) * POR_PAGINA);
+  const pager = rows.length > POR_PAGINA ? `<div class="pager"><button type="button" data-d="-1" aria-label="Anteriores" ${paginaTabla ? "" : "disabled"}>‹</button><span>${desde}–${hasta} de ${rows.length}</span><button type="button" data-d="1" aria-label="Siguientes" ${paginaTabla < paginas - 1 ? "" : "disabled"}>›</button></div>` : "";
+  $("#tbPagerTop").innerHTML = pager; $("#tbPagerBottom").innerHTML = pager;
+}
+
+$("#tbEntrar").addEventListener("click", () => {
+  const c = $("#tbClave").value.trim(); if(!c){ $("#tbClave").focus(); return; }
+  try { localStorage.setItem(COORD_KEY, c); } catch {}
+  $("#tbClave").value = ""; verCentral = ""; cargarCentral();
+});
+$("#tbClave").addEventListener("keydown", e => { if(e.key === "Enter") $("#tbEntrar").click(); });
+$("#tbSalir").addEventListener("click", () => {
+  try { localStorage.removeItem(COORD_KEY); } catch {}
+  central = []; verCentral = ""; mostrarIngreso();
+});
+["#tbDesde", "#tbHasta"].forEach(s => $(s).addEventListener("change", () => { paginaTabla = 0; renderTablero(); }));
+$("#board").addEventListener("click", e => {
+  const b = e.target.closest(".pager button"); if(!b) return;
+  paginaTabla += +b.dataset.d; renderTablero();
+  $("#tbPagerTop").scrollIntoView({ behavior:"smooth", block:"start" });
+});
+$("#tbExcel").addEventListener("click", () => {
+  const rows = filtradasCentral(), f = rows.map(r => r.fecha).sort();
+  descargarExcel(rows, f.length ? `Auditorias ${f[0]}${f[0] === f.at(-1) ? "" : " al " + f.at(-1)}` : "Auditorias");
 });
 
 /* ---------- Pestañas ---------- */
@@ -847,7 +1074,10 @@ document.querySelectorAll(".tabs button").forEach(t => t.addEventListener("click
   const v = t.dataset.view;
   $("#form").classList.toggle("hidden", v !== "form");
   $("#list").classList.toggle("hidden", v !== "list");
+  $("#board").classList.toggle("hidden", v !== "board");
+  document.querySelector("main").classList.toggle("ancho", v === "board");   // el tablero usa más ancho en computadora
   if(v === "list") renderLista();
+  if(v === "board") cargarCentral();
   window.scrollTo({top:0});
 }));
 
@@ -870,6 +1100,18 @@ if(FLOW_URL){
   (function cadaMinuto(){ setTimeout(() => { if(!document.hidden) enviarPendientes(); cadaMinuto(); }, 60000 + Math.floor(Math.random() * 15000)); })();
 }
 try { navigator.storage?.persist?.(); } catch {}                            // pide al navegador que no borre lo guardado por su cuenta
+
+/* Link de coordinación: aparece la pestaña Tablero y la app abre en ella. Se refresca sola cada minuto mientras está a la vista. */
+if(MODO_COORD){
+  const tab = document.querySelector('.tabs button[data-view="board"]');
+  tab.classList.remove("hidden"); $(".tabs").classList.add("tres");
+  $(".tag").textContent = "COORDINACIÓN";
+  document.title = "Tablero · Auditoría Juegos Evita";
+  tab.click();
+  const visible = () => !document.hidden && !$("#board").classList.contains("hidden") && !!claveCoord();
+  setInterval(() => { if(visible()) cargarCentral(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if(visible()) cargarCentral(); });
+}
 
 /* La app queda guardada en el celular (sw.js, publicado al lado de index.html): abre rápido y también sin señal.
    Solo en la página publicada (https) o probando en la compu (localhost); abierta como archivo no aplica. */
